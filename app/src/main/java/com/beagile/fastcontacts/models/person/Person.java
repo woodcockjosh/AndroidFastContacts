@@ -37,6 +37,7 @@ public class Person extends BaseModel implements Serializable {
         Default,
         Connect,
         Invite,
+        Invited,
         NA
     }
 
@@ -50,11 +51,7 @@ public class Person extends BaseModel implements Serializable {
     enum InviteSelection {
         None,
         One,
-        Many,
-        OnePhoneManyEmail,
-        ManyPhoneManyEmail,
-        OnePhoneOneEmail,
-        ManyPhoneOneEmail,
+        Many
     }
 
     class InviteInfo {
@@ -320,6 +317,10 @@ public class Person extends BaseModel implements Serializable {
         return this.mIsConnection == 1;
     }
 
+    public boolean isInvited() {
+        return this.mInvited == 1;
+    }
+
     public void setImagePath(String path) {
         this.mImageUrl = path;
     }
@@ -358,7 +359,11 @@ public class Person extends BaseModel implements Serializable {
     public DisplayType getDisplayType() {
         if (this.getUserId() == null) {
             if (this.hasContactInfo()) {
-                return DisplayType.Invite;
+                if(this.isInvited()){
+                    return DisplayType.Invited;
+                }else{
+                    return DisplayType.Invite;
+                }
             } else {
                 return DisplayType.NA;
             }
@@ -376,15 +381,7 @@ public class Person extends BaseModel implements Serializable {
             boolean hasManyEmails = this.getEmails().size() > 1;
             boolean hasManyPhones = this.getPhoneNumbers().size() > 1;
             if (hasPhone && hasEmail) {
-                if (hasManyEmails && hasManyPhones) {
-                    return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.ManyPhoneManyEmail);
-                } else if (hasManyEmails) {
-                    return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.OnePhoneManyEmail);
-                } else if (hasManyPhones) {
-                    return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.ManyPhoneOneEmail);
-                } else {
-                    return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.OnePhoneOneEmail);
-                }
+                return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.Many);
             } else if (hasPhone) {
                 if (hasManyPhones) {
                     return new InviteInfo(InviteType.PhoneOnly, InviteSelection.One);
