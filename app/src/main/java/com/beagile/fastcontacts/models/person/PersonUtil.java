@@ -176,9 +176,9 @@ public class PersonUtil {
         }
     }
 
-    public static Person getPersonWithUserId(int openTimeUserID) {
+    public static Person getPersonWithUserId(int userId) {
         return new Select().from(Person.class)
-                .where(Person_Table.id.eq(openTimeUserID))
+                .where(Person_Table.id.eq(userId))
                 .querySingle(FastContactsDatabase.instance());
     }
 }

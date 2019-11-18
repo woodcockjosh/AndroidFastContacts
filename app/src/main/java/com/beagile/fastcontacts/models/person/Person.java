@@ -525,9 +525,9 @@ public class Person extends BaseModel implements Serializable {
     }
 
     /**
-     * Gets a list of phone numbers which could be used as a phone number for another OpenTime user.
+     * Gets a list of phone numbers which could be used as a phone number for another user.
      *
-     * @return A list of phone number which could be for other OpenTime users.
+     * @return A list of phone number which could be for other users.
      */
     public List<PhoneNumber> getSearchablePhones() {
         List<PhoneNumber> searchablePhones = new ArrayList<>();
