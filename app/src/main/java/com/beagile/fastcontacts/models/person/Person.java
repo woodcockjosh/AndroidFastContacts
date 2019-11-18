@@ -31,6 +31,24 @@ import java.util.List;
 @Table(database = FastContactsDatabase.class)
 public class Person extends BaseModel implements Serializable {
 
+    // region: Enum
+
+    enum DisplayType {
+        Default,
+        Connect,
+        Invite,
+        NA
+    }
+
+    enum InviteType {
+        PhoneOnly,
+        EmailOnly,
+        PhoneOrEmail,
+        NA
+    }
+
+    //
+
     // region: DBFlow variables
 
     // Requirement for Cursor Adapters
@@ -310,6 +328,38 @@ public class Person extends BaseModel implements Serializable {
         return displayName;
     }
 
+    public DisplayType getDisplayType() {
+        if(this.getUserId() == null){
+            if(this.hasContactInfo()){
+                return DisplayType.Invite;
+            }else{
+                return DisplayType.NA;
+            }
+        }else if(!this.isConnection()){
+            return DisplayType.Connect;
+        }else{
+            return DisplayType.Default;
+        }
+    }
+
+    public InviteType getInviteType() {
+        if(this.hasContactInfo()){
+            boolean hasPhone = this.hasPhone();
+            boolean hasEmail = this.hasEmail();
+            if(hasPhone && hasEmail){
+                return InviteType.PhoneOrEmail;
+            }else if(hasPhone){
+                return InviteType.PhoneOnly;
+            }else if(hasEmail){
+                return InviteType.EmailOnly;
+            }else{
+                return InviteType.NA;
+            }
+        }else{
+            return InviteType.NA;
+        }
+    }
+
     public PhoneNumber getPhoneNumber() {
         return this.phoneNumbers.size() > 0 ? this.phoneNumbers.get(0) : null;
     }
@@ -400,6 +450,10 @@ public class Person extends BaseModel implements Serializable {
 
     public boolean hasPhone() {
         return this.phoneNumbers.size() > 0;
+    }
+
+    public boolean hasContactInfo() {
+        return this.mHasContactInfo == 1;
     }
 
     public boolean hasAnyEmails(List<String> emails) {

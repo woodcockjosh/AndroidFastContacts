@@ -8,6 +8,7 @@ import com.dbflow5.annotation.ForeignKey;
 import com.dbflow5.annotation.PrimaryKey;
 import com.dbflow5.annotation.Table;
 import com.dbflow5.structure.BaseModel;
+import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -29,6 +30,7 @@ public class PhoneNumber extends BaseModel implements Serializable {
 
     @PrimaryKey()
     @SerializedName("hash_value")
+    @Expose
     @Column(name = "hash_value")
     public String hashValue;
 
