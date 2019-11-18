@@ -5,7 +5,13 @@ repositories{
         dirs 'libs'
     }
     google()
-    maven { url "https://jitpack.io" }
+    maven {
+        url "https://jitpack.io"
+    }
+    maven {
+        url 'http://www.idescout.com/maven/repo/'
+    }
+
 }
 
 
@@ -37,6 +43,9 @@ dependencies {
     implementation "com.github.agrosner.dbflow:core:${dbflow_version}"
     implementation "com.github.agrosner.dbflow:lib:${dbflow_version}"
 
+    debugImplementation 'com.idescout.sql:sqlscout-server:4.1'
+    releaseImplementation 'com.idescout.sql:sqlscout-server-noop:4.1'
+
     implementation 'commons-codec:commons-codec:1.13'
     implementation 'com.jonathanfinerty.once:once:1.2.2'
     implementation 'androidx.preference:preference:1.1.0'
@@ -52,4 +61,6 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
     implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
+    debugImplementation 'com.idescout.sql:sqlscout-server:4.1'
+    releaseImplementation 'com.idescout.sql:sqlscout-server-noop:4.1'
 }

@@ -1,17 +1,21 @@
 package com.beagile.fastcontacts.models.person.elements;
 
+import android.util.Log;
+
 import com.beagile.fastcontacts.config.FastContactsDatabase;
 import com.beagile.fastcontacts.models.person.Person;
 import com.dbflow5.annotation.Column;
 import com.dbflow5.annotation.ForeignKey;
 import com.dbflow5.annotation.PrimaryKey;
 import com.dbflow5.annotation.Table;
+import com.dbflow5.database.DatabaseWrapper;
 import com.dbflow5.structure.BaseModel;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -84,6 +88,16 @@ public class Email extends BaseModel implements Serializable {
         } else {
             this.value = "";
             this.hashValue = null;
+        }
+    }
+
+    @Override
+    public boolean save(@NotNull DatabaseWrapper wrapper){
+        if(this.person != null){
+            return super.save(wrapper);
+        }else{
+            Log.e(this.getClass().getSimpleName(),"Attempted to save phone number " + this.value + " without a person associated");
+            return false;
         }
     }
 }

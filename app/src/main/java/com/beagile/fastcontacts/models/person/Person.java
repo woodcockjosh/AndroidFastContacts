@@ -60,17 +60,19 @@ public class Person extends BaseModel implements Serializable {
     class InviteInfo {
         public final InviteType type;
         public final InviteSelection selection;
+
         InviteInfo(InviteType type, InviteSelection selection) {
             this.type = type;
             this.selection = selection;
         }
-        InviteInfo(InviteType type){
+
+        InviteInfo(InviteType type) {
             this.type = type;
             this.selection = InviteSelection.None;
         }
     }
 
-    //
+    //endregion
 
     // region: DBFlow variables
 
@@ -179,6 +181,7 @@ public class Person extends BaseModel implements Serializable {
         }
 
         phone.person = this;
+        this.setHasContactInfo(true);
         if (!this.phoneNumbers.contains(phone)) {
             this.phoneNumbers.add(phone);
 
@@ -209,6 +212,7 @@ public class Person extends BaseModel implements Serializable {
         }
 
         email.person = this;
+        this.setHasContactInfo(true);
         if (!this.emails.contains(email)) {
             this.emails.add(email);
             Collections.sort(this.emails, new Comparator<Email>() {
@@ -352,51 +356,51 @@ public class Person extends BaseModel implements Serializable {
     }
 
     public DisplayType getDisplayType() {
-        if(this.getUserId() == null){
-            if(this.hasContactInfo()){
+        if (this.getUserId() == null) {
+            if (this.hasContactInfo()) {
                 return DisplayType.Invite;
-            }else{
+            } else {
                 return DisplayType.NA;
             }
-        }else if(!this.isConnection()){
+        } else if (!this.isConnection()) {
             return DisplayType.Connect;
-        }else{
+        } else {
             return DisplayType.Default;
         }
     }
 
     public InviteInfo getInviteInfo() {
-        if(this.hasContactInfo()){
+        if (this.hasContactInfo()) {
             boolean hasPhone = this.hasPhone();
             boolean hasEmail = this.hasEmail();
             boolean hasManyEmails = this.getEmails().size() > 1;
             boolean hasManyPhones = this.getPhoneNumbers().size() > 1;
-            if(hasPhone && hasEmail){
-                if(hasManyEmails && hasManyPhones){
+            if (hasPhone && hasEmail) {
+                if (hasManyEmails && hasManyPhones) {
                     return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.ManyPhoneManyEmail);
-                }else if(hasManyEmails){
+                } else if (hasManyEmails) {
                     return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.OnePhoneManyEmail);
-                }else if(hasManyPhones){
+                } else if (hasManyPhones) {
                     return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.ManyPhoneOneEmail);
-                }else{
+                } else {
                     return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.OnePhoneOneEmail);
                 }
-            }else if(hasPhone){
-                if(hasManyPhones){
+            } else if (hasPhone) {
+                if (hasManyPhones) {
                     return new InviteInfo(InviteType.PhoneOnly, InviteSelection.One);
-                }else{
+                } else {
                     return new InviteInfo(InviteType.PhoneOnly, InviteSelection.Many);
                 }
-            }else if(hasEmail){
-                if(hasManyEmails){
+            } else if (hasEmail) {
+                if (hasManyEmails) {
                     return new InviteInfo(InviteType.EmailOnly, InviteSelection.Many);
-                }else{
+                } else {
                     return new InviteInfo(InviteType.EmailOnly, InviteSelection.One);
                 }
-            }else{
+            } else {
                 return new InviteInfo(InviteType.NA);
             }
-        }else{
+        } else {
             return new InviteInfo(InviteType.NA);
         }
     }
@@ -443,7 +447,7 @@ public class Person extends BaseModel implements Serializable {
             this.phoneNumbers = new ArrayList<>();
         }
         for (PhoneNumber number : phoneNumbers) {
-            addPhone(number);
+            this.addPhone(number);
         }
     }
 

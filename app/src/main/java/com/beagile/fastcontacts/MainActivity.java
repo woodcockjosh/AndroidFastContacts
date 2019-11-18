@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.beagile.fastcontacts.contacts.PhoneContacts;
 import com.beagile.fastcontacts.contacts.PhoneContactsCallback;
+import com.idescout.sql.SqlScoutServer;
 
 import java.text.DecimalFormat;
 
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView mProgressText, mTotalSecondsText, mRecordsPerSecondText, mTotalRecordsText, mSyncingContactsText;
     private int mMax;
     private long mStart;
+    private SqlScoutServer mSqlScoutServer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
                 mPhoneContacts.starSyncWithPermissionsCheck();
             }
         });
+
+        this.mSqlScoutServer = SqlScoutServer.create(this, getPackageName());
     }
 
     private PhoneContactsCallback mPhoneContactsCallback = new PhoneContactsCallback() {
@@ -113,5 +117,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         mPhoneContacts.release();
+        mSqlScoutServer.destroy();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mSqlScoutServer.resume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mSqlScoutServer.pause();
     }
 }
