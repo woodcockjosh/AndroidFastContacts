@@ -2,11 +2,13 @@ package com.beagile.fastcontacts.models.person.elements;
 
 import com.beagile.fastcontacts.config.FastContactsDatabase;
 import com.beagile.fastcontacts.models.person.Person;
+import com.beagile.fastcontacts.utils.PhoneFormatUtil;
 import com.dbflow5.annotation.Column;
 import com.dbflow5.annotation.ForeignKey;
 import com.dbflow5.annotation.PrimaryKey;
 import com.dbflow5.annotation.Table;
 import com.dbflow5.structure.BaseModel;
+import com.google.gson.annotations.SerializedName;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jetbrains.annotations.Contract;
@@ -22,22 +24,28 @@ public class PhoneNumber extends BaseModel implements Serializable {
     @ForeignKey(stubbedRelationship = true)
     public Person person;
 
-    @PrimaryKey()
     @Column
     public String value;
 
+    @PrimaryKey()
+    @SerializedName("hash_value")
     @Column(name = "hash_value")
     public String hashValue;
 
     @Column
     public String type;
 
+    public PhoneNumber(String hashValue) {
+        this("", "");
+        this.hashValue = hashValue;
+    }
+
     public PhoneNumber() {
         this("", "");
     }
 
     public PhoneNumber(String value, String type) {
-        this._setPhoneNumber(value);
+        this.setPhoneNumber(value);
         this.type = type;
     }
 
@@ -49,12 +57,12 @@ public class PhoneNumber extends BaseModel implements Serializable {
 
         PhoneNumber phoneNumber = (PhoneNumber) o;
 
-        return Objects.equals(value, phoneNumber.value);
+        return Objects.equals(hashValue, phoneNumber.hashValue);
     }
 
     @Override
     public int hashCode() {
-        int result = value != null ? value.hashCode() : 0;
+        int result = hashValue != null ? hashValue.hashCode() : 0;
         result = 31 * result + (type != null ? type.hashCode() : 0);
         return result;
     }
@@ -68,12 +76,14 @@ public class PhoneNumber extends BaseModel implements Serializable {
                 '}';
     }
 
-    private void _setPhoneNumber(String phone) {
-        if (phone != null) {
-            this.value = phone.toLowerCase();
+    private void setPhoneNumber(String phone) {
+        if (phone != null && PhoneFormatUtil.isValid(phone)) {
+            phone = PhoneFormatUtil.format(phone);
+            this.value = phone;
             this.hashValue = DigestUtils.sha256Hex(this.value + HASH_SALT);
         } else {
             this.value = "";
+            this.hashValue = null;
         }
     }
 }

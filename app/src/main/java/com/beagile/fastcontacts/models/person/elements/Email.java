@@ -7,6 +7,7 @@ import com.dbflow5.annotation.ForeignKey;
 import com.dbflow5.annotation.PrimaryKey;
 import com.dbflow5.annotation.Table;
 import com.dbflow5.structure.BaseModel;
+import com.google.gson.annotations.SerializedName;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jetbrains.annotations.Contract;
@@ -22,10 +23,11 @@ public class Email extends BaseModel implements Serializable {
     @ForeignKey(stubbedRelationship = true)
     public Person person;
 
-    @PrimaryKey()
     @Column
     public String value;
 
+    @PrimaryKey()
+    @SerializedName("hash_value")
     @Column(name = "hash_value")
     public String hashValue;
 
@@ -36,8 +38,13 @@ public class Email extends BaseModel implements Serializable {
         this("", "");
     }
 
+    public Email(String hashValue) {
+        this("", "");
+        this.hashValue = hashValue;
+    }
+
     public Email(String value, String type) {
-        this._setEmail(value);
+        this.setEmail(value);
         this.type = type;
     }
 
@@ -49,12 +56,12 @@ public class Email extends BaseModel implements Serializable {
 
         Email email = (Email) o;
 
-        return Objects.equals(value, email.value);
+        return Objects.equals(hashValue, email.hashValue);
     }
 
     @Override
     public int hashCode() {
-        int result = value != null ? value.hashCode() : 0;
+        int result = hashValue != null ? hashValue.hashCode() : 0;
         result = 31 * result + (type != null ? type.hashCode() : 0);
         return result;
     }
@@ -68,13 +75,13 @@ public class Email extends BaseModel implements Serializable {
                 '}';
     }
 
-    private void _setEmail(String email) {
+    private void setEmail(String email) {
         if (email != null) {
             this.value = email.toLowerCase();
             this.hashValue =  DigestUtils.sha256Hex(this.value + HASH_SALT);
         } else {
             this.value = "";
-            this.hashValue = "";
+            this.hashValue = null;
         }
     }
 }

@@ -73,9 +73,9 @@ public class PersonUtil {
 
             for (Email email : emails) {
                 rawStatementBuilder.append(email.equals(emails.get(0)) ? " WHERE " : " OR ");
-                rawStatementBuilder.append("value");
+                rawStatementBuilder.append("hash_value");
                 rawStatementBuilder.append(" = '");
-                rawStatementBuilder.append(email.value);
+                rawStatementBuilder.append(email.hashValue);
                 rawStatementBuilder.append("'");
             }
 
@@ -108,9 +108,9 @@ public class PersonUtil {
 
             for (PhoneNumber phoneNumber : phoneNumbers) {
                 rawStatementBuilder.append(phoneNumber.equals(phoneNumbers.get(0)) ? " WHERE " : " OR ");
-                rawStatementBuilder.append("value");
+                rawStatementBuilder.append("hash_value");
                 rawStatementBuilder.append(" = '");
-                rawStatementBuilder.append(phoneNumber.value);
+                rawStatementBuilder.append(phoneNumber.hashValue);
                 rawStatementBuilder.append("'");
             }
 

@@ -50,7 +50,7 @@ public class Person extends BaseModel implements Serializable {
     @Expose
     private String mUserId;
     @Column(name = "image_url", getterName = "getImageUrl", setterName = "setImageUrl")
-    @SerializedName("imageUrl")
+    @SerializedName("image_url")
     @Expose
     private String mImageUrl;
     @Column(name = "first_name", getterName = "getFirstName", setterName = "setFirstName")
@@ -136,12 +136,6 @@ public class Person extends BaseModel implements Serializable {
         if (phone == null) {
             return;
         }
-
-        if (!PhoneFormatUtil.isValid(phone.value)) {
-            return;
-        }
-
-        phone.value = PhoneFormatUtil.format(phone.value);
 
         phone.person = this;
         if (!this.phoneNumbers.contains(phone)) {
