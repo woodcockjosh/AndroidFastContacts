@@ -31,7 +31,7 @@
         </activity>
 
         <service
-            android:name=".services.PhoneContactsSynchronizerTask"
+            android:name=".tasks.PhoneContactsSynchronizerTask"
             android:enabled="true"
             android:exported="true">
         </service>

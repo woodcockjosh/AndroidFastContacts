@@ -1,4 +1,4 @@
-package com.beagile.fastcontacts.services;
+package com.beagile.fastcontacts.tasks;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -312,7 +312,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
     private void _syncNextContact(PhoneContactsSynchronizerCallback callback) {
 
         if (this.mContactContactID == UNKNOWN_ID && this.mPersonContactID == UNKNOWN_ID) {
-            // FastContacts contact not in phone contacts
+            // FastContacts contact id not in phone contacts
             this._goToNextContact();
             this._goToNextPerson();
         } else if (this.mContactContactID > this.mPersonContactID) {
@@ -323,7 +323,6 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
             this._goToNextContact();
             this._goToNextPerson();
         } else if (this.mPersonID == null) {
-            // this is a test data mId
             callback.didFinishLoadingPerson(ChangeType.IGNORE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
             this._goToNextPerson();
         } else {
@@ -421,7 +420,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
         _populatePerson(person);
 
         if (_isValidPerson(person)) {
-            Integer autoincrementID = PersonUtil.lookupPersonAutoIncrementIDWithContactInformation(person);
+            Integer autoincrementID = PersonUtil.lookupPersonIdWithContactInformation(person);
             ChangeType type;
             if (this._personAlreadyExistsBasedOnContactInformation(autoincrementID)) {
                 person = this._mergePersonInfo(person, autoincrementID);

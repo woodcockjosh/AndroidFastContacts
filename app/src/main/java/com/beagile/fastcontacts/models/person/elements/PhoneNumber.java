@@ -8,6 +8,7 @@ import com.dbflow5.annotation.PrimaryKey;
 import com.dbflow5.annotation.Table;
 import com.dbflow5.structure.BaseModel;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.jetbrains.annotations.Contract;
 
 import java.io.Serializable;
@@ -16,12 +17,17 @@ import java.util.Objects;
 @Table(database = FastContactsDatabase.class)
 public class PhoneNumber extends BaseModel implements Serializable {
 
+    private static final String HASH_SALT = "SUS3g4QfQvaFh9Yg4RZx5eh5COWP39PJ4t2fPVcZ";
+
     @ForeignKey(stubbedRelationship = true)
     public Person person;
 
     @PrimaryKey()
     @Column
     public String value;
+
+    @Column(name = "hash_value")
+    public String hashValue;
 
     @Column
     public String type;
@@ -41,9 +47,9 @@ public class PhoneNumber extends BaseModel implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        PhoneNumber email = (PhoneNumber) o;
+        PhoneNumber phoneNumber = (PhoneNumber) o;
 
-        return Objects.equals(value, email.value);
+        return Objects.equals(value, phoneNumber.value);
     }
 
     @Override
@@ -57,13 +63,15 @@ public class PhoneNumber extends BaseModel implements Serializable {
     public String toString() {
         return "PhoneNumber{" +
                 ", value='" + value + '\'' +
+                ", hashValue='" + hashValue + '\'' +
                 ", type='" + type + '\'' +
                 '}';
     }
 
-    private void _setPhoneNumber(String email) {
-        if (email != null) {
-            this.value = email.toLowerCase();
+    private void _setPhoneNumber(String phone) {
+        if (phone != null) {
+            this.value = phone.toLowerCase();
+            this.hashValue = DigestUtils.sha256Hex(this.value + HASH_SALT);
         } else {
             this.value = "";
         }

@@ -1,6 +1,6 @@
 package com.beagile.fastcontacts.contacts;
 
-import com.beagile.fastcontacts.services.PhoneContactsSynchronizerTask;
+import com.beagile.fastcontacts.tasks.PhoneContactsSynchronizerTask;
 
 /**
  * Created by josh on 8/30/15.

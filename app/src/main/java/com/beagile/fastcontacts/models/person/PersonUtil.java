@@ -44,14 +44,14 @@ public class PersonUtil {
     }
 
     @Nullable
-    public static Integer lookupPersonAutoIncrementIDWithContactInformation(@NotNull Person person) {
+    public static Integer lookupPersonIdWithContactInformation(@NotNull Person person) {
 
-        Integer autoincrementID = _lookupPersonAutoincrementIDBasedOnEmails(person.getEmails());
+        Integer autoincrementID = _lookupPersonIdBasedOnEmails(person.getEmails());
         if (autoincrementID != null) {
             return autoincrementID;
         }
 
-        autoincrementID = _lookupPersonAutoincrementIDBasedOnPhoneNumbers(person.getPhoneNumbers());
+        autoincrementID = _lookupPersonIdBasedOnPhoneNumbers(person.getPhoneNumbers());
         if (autoincrementID != null) {
             return autoincrementID;
         }
@@ -60,7 +60,7 @@ public class PersonUtil {
     }
 
     @Nullable
-    private static Integer _lookupPersonAutoincrementIDBasedOnEmails(@NotNull List<Email> emails) {
+    private static Integer _lookupPersonIdBasedOnEmails(@NotNull List<Email> emails) {
 
         if (emails.size() > 0) {
             DatabaseWrapper database = FastContactsDatabase.instance().getWritableDatabase();
@@ -72,7 +72,7 @@ public class PersonUtil {
             rawStatementBuilder.append(Email.class.getSimpleName());
 
             for (Email email : emails) {
-                rawStatementBuilder.append(email == emails.get(0) ? " WHERE " : " OR ");
+                rawStatementBuilder.append(email.equals(emails.get(0)) ? " WHERE " : " OR ");
                 rawStatementBuilder.append("value");
                 rawStatementBuilder.append(" = '");
                 rawStatementBuilder.append(email.value);
@@ -94,7 +94,7 @@ public class PersonUtil {
     }
 
     @Nullable
-    private static Integer _lookupPersonAutoincrementIDBasedOnPhoneNumbers(@NotNull List<PhoneNumber> phoneNumbers) {
+    private static Integer _lookupPersonIdBasedOnPhoneNumbers(@NotNull List<PhoneNumber> phoneNumbers) {
 
         if (phoneNumbers.size() > 0) {
             DatabaseWrapper database = FastContactsDatabase.instance()
@@ -107,7 +107,7 @@ public class PersonUtil {
             rawStatementBuilder.append(PhoneNumber.class.getSimpleName());
 
             for (PhoneNumber phoneNumber : phoneNumbers) {
-                rawStatementBuilder.append(phoneNumber == phoneNumbers.get(0) ? " WHERE " : " OR ");
+                rawStatementBuilder.append(phoneNumber.equals(phoneNumbers.get(0)) ? " WHERE " : " OR ");
                 rawStatementBuilder.append("value");
                 rawStatementBuilder.append(" = '");
                 rawStatementBuilder.append(phoneNumber.value);
@@ -125,6 +125,54 @@ public class PersonUtil {
             }
         } else {
             return null;
+        }
+    }
+
+    @Nullable
+    public static Integer lookupPersonAutoincrementIDBasedOnHashedEmail(@NotNull String hashedEmail) {
+
+        DatabaseWrapper database = FastContactsDatabase.instance().getWritableDatabase();
+
+        String rawStatement = "SELECT " +
+                "person_id" +
+                " FROM " +
+                Email.class.getSimpleName() +
+                " WHERE " +
+                "hash_value" +
+                " = '" +
+                hashedEmail +
+                "'";
+
+        try (Cursor cursor = database.rawQuery(rawStatement, null)) {
+            if (cursor.moveToFirst()) {
+                return CursorUtil.getInt(cursor, "person_id");
+            } else {
+                return null;
+            }
+        }
+    }
+
+    @Nullable
+    public static Integer lookupPersonAutoincrementIDBasedOnHashedPhoneNumber(@NotNull String hashedPhone) {
+
+        DatabaseWrapper database = FastContactsDatabase.instance().getWritableDatabase();
+
+        String rawStatement = "SELECT " +
+                "person_id" +
+                " FROM " +
+                PhoneNumber.class.getSimpleName() +
+                " WHERE " +
+                "hash_value" +
+                " = '" +
+                hashedPhone +
+                "'";
+
+        try (Cursor cursor = database.rawQuery(rawStatement, null)) {
+            if (cursor.moveToFirst()) {
+                return CursorUtil.getInt(cursor, "person_id");
+            } else {
+                return null;
+            }
         }
     }
 

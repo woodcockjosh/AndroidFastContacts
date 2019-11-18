@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.beagile.fastcontacts.MainActivity;
-import com.beagile.fastcontacts.services.PhoneContactsSynchronizerTask;
+import com.beagile.fastcontacts.tasks.PhoneContactsSynchronizerTask;
 
 public class PhoneContacts {
 

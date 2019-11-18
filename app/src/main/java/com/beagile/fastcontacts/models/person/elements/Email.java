@@ -8,6 +8,7 @@ import com.dbflow5.annotation.PrimaryKey;
 import com.dbflow5.annotation.Table;
 import com.dbflow5.structure.BaseModel;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.jetbrains.annotations.Contract;
 
 import java.io.Serializable;
@@ -16,12 +17,17 @@ import java.util.Objects;
 @Table(database = FastContactsDatabase.class)
 public class Email extends BaseModel implements Serializable {
 
+    private static final String HASH_SALT = "3i5UZlnHZUEt5gqiXsesqDfkxcKtbaKwPYJBMOrg";
+
     @ForeignKey(stubbedRelationship = true)
     public Person person;
 
     @PrimaryKey()
     @Column
     public String value;
+
+    @Column(name = "hash_value")
+    public String hashValue;
 
     @Column
     public String type;
@@ -57,6 +63,7 @@ public class Email extends BaseModel implements Serializable {
     public String toString() {
         return "Email{" +
                 ", value='" + value + '\'' +
+                ", hashValue='" + hashValue + '\'' +
                 ", type='" + type + '\'' +
                 '}';
     }
@@ -64,8 +71,10 @@ public class Email extends BaseModel implements Serializable {
     private void _setEmail(String email) {
         if (email != null) {
             this.value = email.toLowerCase();
+            this.hashValue =  DigestUtils.sha256Hex(this.value + HASH_SALT);
         } else {
             this.value = "";
+            this.hashValue = "";
         }
     }
 }
