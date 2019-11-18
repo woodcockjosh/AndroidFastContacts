@@ -47,6 +47,29 @@ public class Person extends BaseModel implements Serializable {
         NA
     }
 
+    enum InviteSelection {
+        None,
+        One,
+        Many,
+        OnePhoneManyEmail,
+        ManyPhoneManyEmail,
+        OnePhoneOneEmail,
+        ManyPhoneOneEmail,
+    }
+
+    class InviteInfo {
+        public final InviteType type;
+        public final InviteSelection selection;
+        InviteInfo(InviteType type, InviteSelection selection) {
+            this.type = type;
+            this.selection = selection;
+        }
+        InviteInfo(InviteType type){
+            this.type = type;
+            this.selection = InviteSelection.None;
+        }
+    }
+
     //
 
     // region: DBFlow variables
@@ -342,21 +365,39 @@ public class Person extends BaseModel implements Serializable {
         }
     }
 
-    public InviteType getInviteType() {
+    public InviteInfo getInviteInfo() {
         if(this.hasContactInfo()){
             boolean hasPhone = this.hasPhone();
             boolean hasEmail = this.hasEmail();
+            boolean hasManyEmails = this.getEmails().size() > 1;
+            boolean hasManyPhones = this.getPhoneNumbers().size() > 1;
             if(hasPhone && hasEmail){
-                return InviteType.PhoneOrEmail;
+                if(hasManyEmails && hasManyPhones){
+                    return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.ManyPhoneManyEmail);
+                }else if(hasManyEmails){
+                    return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.OnePhoneManyEmail);
+                }else if(hasManyPhones){
+                    return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.ManyPhoneOneEmail);
+                }else{
+                    return new InviteInfo(InviteType.PhoneOrEmail, InviteSelection.OnePhoneOneEmail);
+                }
             }else if(hasPhone){
-                return InviteType.PhoneOnly;
+                if(hasManyPhones){
+                    return new InviteInfo(InviteType.PhoneOnly, InviteSelection.One);
+                }else{
+                    return new InviteInfo(InviteType.PhoneOnly, InviteSelection.Many);
+                }
             }else if(hasEmail){
-                return InviteType.EmailOnly;
+                if(hasManyEmails){
+                    return new InviteInfo(InviteType.EmailOnly, InviteSelection.Many);
+                }else{
+                    return new InviteInfo(InviteType.EmailOnly, InviteSelection.One);
+                }
             }else{
-                return InviteType.NA;
+                return new InviteInfo(InviteType.NA);
             }
         }else{
-            return InviteType.NA;
+            return new InviteInfo(InviteType.NA);
         }
     }
 
