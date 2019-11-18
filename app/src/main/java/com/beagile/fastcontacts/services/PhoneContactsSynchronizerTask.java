@@ -96,8 +96,12 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
 
     // region: Singleton and constructor
 
-    public PhoneContactsSynchronizerTask(Context context) {
+    public PhoneContactsSynchronizerTask() {
         this.mLastRowChangedTimestamp = 0;
+    }
+
+    public PhoneContactsSynchronizerTask(Context context) {
+        this();
         this.mContext = context;
         this.mBroadcastManager = LocalBroadcastManager.getInstance(context);
     }

@@ -61,6 +61,21 @@ public class MainActivity extends AppCompatActivity {
             String percentText = format.format(percent);
             String progressText = percentText + "%";
             mProgressText.setText(progressText);
+
+            long end = System.currentTimeMillis();
+            long duration = end - mStart;
+            double seconds = duration / (float) 1000;
+
+            double recordsPerSecond = current / seconds;
+
+            String totalRecordsText = "Total Contacts: " + mMax;
+            mTotalRecordsText.setText(totalRecordsText);
+
+            String totalSecondsText = "Total Seconds: " + format.format(seconds);
+            mTotalSecondsText.setText(totalSecondsText);
+
+            String recordsPerSecondText = "Contacts per second: " + format.format(recordsPerSecond);
+            mRecordsPerSecondText.setText(recordsPerSecondText);
         }
 
         @Override
@@ -72,9 +87,9 @@ public class MainActivity extends AppCompatActivity {
             mProgressText.setVisibility(View.VISIBLE);
             mProgressBar.setIndeterminate(true);
 
-            mTotalRecordsText.setVisibility(View.INVISIBLE);
-            mTotalSecondsText.setVisibility(View.INVISIBLE);
-            mRecordsPerSecondText.setVisibility(View.INVISIBLE);
+            mTotalRecordsText.setVisibility(View.VISIBLE);
+            mTotalSecondsText.setVisibility(View.VISIBLE);
+            mRecordsPerSecondText.setVisibility(View.VISIBLE);
         }
 
         @Override
@@ -83,26 +98,6 @@ public class MainActivity extends AppCompatActivity {
             mSyncingContactsText.setVisibility(View.GONE);
             mProgressBar.setVisibility(View.INVISIBLE);
             mProgressText.setVisibility(View.INVISIBLE);
-
-            long end = System.currentTimeMillis();
-            long duration = end - mStart;
-            double seconds = duration / (float) 1000;
-
-            DecimalFormat format = new DecimalFormat("00.00");
-
-            double recordsPerSecond = mMax / seconds;
-
-            String totalRecordsText = "Total Contacts: " + mMax;
-            mTotalRecordsText.setText(totalRecordsText);
-            mTotalRecordsText.setVisibility(View.VISIBLE);
-
-            String totalSecondsText = "Total Seconds: " + format.format(seconds);
-            mTotalSecondsText.setText(totalSecondsText);
-            mTotalSecondsText.setVisibility(View.VISIBLE);
-
-            String recordsPerSecondText = "Contacts per second: " + format.format(recordsPerSecond);
-            mRecordsPerSecondText.setText(recordsPerSecondText);
-            mRecordsPerSecondText.setVisibility(View.VISIBLE);
         }
     };
 
