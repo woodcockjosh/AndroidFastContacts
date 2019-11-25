@@ -7,4 +7,5 @@ public interface PhoneContactsCallback {
     void didFinishLoadingPerson(boolean wasChanged, int current, int max);
     void didStartSyncingContacts();
     void didEndSyncingContacts();
+    void didEndSavingContacts();
 }

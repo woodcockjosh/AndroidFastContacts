@@ -66,24 +66,12 @@ public class MainActivity extends AppCompatActivity {
             String progressText = percentText + "%";
             mProgressText.setText(progressText);
 
-            long end = System.currentTimeMillis();
-            long duration = end - mStart;
-            double seconds = duration / (float) 1000;
-
-            double recordsPerSecond = current / seconds;
-
-            String totalRecordsText = "Total Contacts: " + mMax;
-            mTotalRecordsText.setText(totalRecordsText);
-
-            String totalSecondsText = "Total Seconds: " + format.format(seconds);
-            mTotalSecondsText.setText(totalSecondsText);
-
-            String recordsPerSecondText = "Contacts per second: " + format.format(recordsPerSecond);
-            mRecordsPerSecondText.setText(recordsPerSecondText);
+            updateSyncResult(current);
         }
 
         @Override
         public void didStartSyncingContacts() {
+            mSyncingContactsText.setText("SYNCING CONTACTS");
             mBtnSyncContacts.setVisibility(View.GONE);
             mSyncingContactsText.setVisibility(View.VISIBLE);
             mStart = System.currentTimeMillis();
@@ -98,12 +86,39 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void didEndSyncingContacts() {
+            mSyncingContactsText.setText("SAVING CONTACTS");
+            mProgressBar.setIndeterminate(true);
+        }
+
+        @Override
+        public void didEndSavingContacts() {
+            updateSyncResult(mMax);
+
             mBtnSyncContacts.setVisibility(View.VISIBLE);
             mSyncingContactsText.setVisibility(View.GONE);
             mProgressBar.setVisibility(View.INVISIBLE);
             mProgressText.setVisibility(View.INVISIBLE);
         }
     };
+
+    private void updateSyncResult(int current) {
+        DecimalFormat format = new DecimalFormat("00.00");
+
+        long end = System.currentTimeMillis();
+        long duration = end - mStart;
+        double seconds = duration / (float) 1000;
+
+        double recordsPerSecond = current / seconds;
+
+        String totalRecordsText = "Total Contacts: " + mMax;
+        mTotalRecordsText.setText(totalRecordsText);
+
+        String totalSecondsText = "Total Seconds: " + format.format(seconds);
+        mTotalSecondsText.setText(totalSecondsText);
+
+        String recordsPerSecondText = "Contacts per second: " + format.format(recordsPerSecond);
+        mRecordsPerSecondText.setText(recordsPerSecondText);
+    }
 
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         this.mPhoneContacts.onRequestPermissionsResult(requestCode, permissions, grantResults);

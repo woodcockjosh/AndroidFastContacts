@@ -237,7 +237,7 @@ public class Person extends BaseModel implements Serializable {
         mUserId = id;
     }
 
-    public int getAutoIncrementID() {
+    public int getPersonId() {
         return mId;
     }
 

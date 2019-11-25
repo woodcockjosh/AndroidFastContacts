@@ -19,16 +19,22 @@ import androidx.preference.PreferenceManager;
 import com.beagile.fastcontacts.config.FastContactsDatabase;
 import com.beagile.fastcontacts.contacts.PhoneContactsSynchronizerCallback;
 import com.beagile.fastcontacts.models.person.Person;
-import com.beagile.fastcontacts.models.person.PersonUtil;
 import com.beagile.fastcontacts.models.person.Person_Table;
 import com.beagile.fastcontacts.models.person.elements.Email;
+import com.beagile.fastcontacts.models.person.elements.EmailPersonIdHashMap;
 import com.beagile.fastcontacts.models.person.elements.PhoneNumber;
+import com.beagile.fastcontacts.models.person.elements.PhoneNumberPersonIdHashMap;
 import com.beagile.fastcontacts.utils.CursorUtil;
 import com.beagile.fastcontacts.utils.PhoneFormatUtil;
 import com.beagile.fastcontacts.utils.StringUtil;
+import com.dbflow5.config.DBFlowDatabase;
+import com.dbflow5.config.FlowManager;
 import com.dbflow5.database.DatabaseWrapper;
 import com.dbflow5.query.SQLite;
 import com.dbflow5.query.Select;
+import com.dbflow5.transaction.FastStoreModelTransaction;
+import com.dbflow5.transaction.ITransaction;
+import com.dbflow5.transaction.Transaction;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Contract;
@@ -48,10 +54,15 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
     public static final String ACTION_CONTACT_SYNC_STARTED = "ACTION_CONTACT_SYNC_STARTED";
     public static final String ACTION_CONTACT_SYNC_UPDATED = "ACTION_CONTACT_SYNC_UPDATED";
     public static final String ACTION_CONTACT_SYNC_COMPLETE = "ACTION_CONTACT_SYNC_COMPLETE";
+    public static final String ACTION_CONTACT_SAVE_COMPLETE = "ACTION_CONTACT_SAVE_COMPLETE";
 
     public static final String EXTRA_CURRENT_POSITION = "EXTRA_CURRENT_POSITION";
     public static final String EXTRA_MAX_POSITION = "EXTRA_MAX_POSITION";
     public static final String EXTRA_WAS_CHANGED = "EXTRA_WAS_CHANGED";
+
+    public enum ChangeType {
+        ADD, MERGE, UPDATE, IGNORE, DELETE, DISASSOCIATE
+    }
 
     // endregion
 
@@ -84,6 +95,9 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
 
     private boolean mLastRowChangedIsTheSameAsCurrentRowChanged;
     private long mLastRowChangedTimestamp;
+    private PhoneNumberPersonIdHashMap phoneNumberPersonIdHashMap;
+    private EmailPersonIdHashMap emailPersonIdHashMap;
+    private List<Person> personsToSave;
 
     // endregion
 
@@ -98,6 +112,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
 
     public PhoneContactsSynchronizerTask() {
         this.mLastRowChangedTimestamp = 0;
+        this.personsToSave = new ArrayList<>();
     }
 
     public PhoneContactsSynchronizerTask(Context context) {
@@ -128,6 +143,10 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
         });
 
         _sendBroadcast(ACTION_CONTACT_SYNC_COMPLETE);
+
+        savePersons();
+
+        _sendBroadcast(ACTION_CONTACT_SAVE_COMPLETE);
 
         return count;
     }
@@ -250,9 +269,11 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
         this.mPersonsMerged = 0;
         this.mPersonsDisassociated = 0;
 
+        this.phoneNumberPersonIdHashMap = new PhoneNumberPersonIdHashMap();
+        this.emailPersonIdHashMap = new EmailPersonIdHashMap();
+
         this.mIsLimitingListByLastUpdateDate = true;
         this.mPersonID = null;
-
         this.mPersonsCursor = this._getPersonsCursor();
         this.mContactsCursor = this._getContactsCursor();
 
@@ -420,7 +441,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
         _populatePerson(person);
 
         if (_isValidPerson(person)) {
-            Integer autoincrementID = PersonUtil.lookupPersonIdWithContactInformation(person);
+            Integer autoincrementID = this.lookupPersonIdWithContactInformation(person);
             ChangeType type;
             if (this._personAlreadyExistsBasedOnContactInformation(autoincrementID)) {
                 person = this._mergePersonInfo(person, autoincrementID);
@@ -431,7 +452,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
                 type = ChangeType.ADD;
             }
             try {
-                person.save(FastContactsDatabase.instance());
+                this.savePerson(person);
             } catch (NullPointerException e) {
                 //Person will be null if _mergePersonInfo returns null or if lookedUpPerson is null.
             }
@@ -487,7 +508,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
             if (contactContactVersion > personContactVersion) {
                 person.setAutoincrementID(CursorUtil.getInt(mPersonsCursor, "id"));
                 this.mPersonsUpdated++;
-                person.save(FastContactsDatabase.instance());
+                this.savePerson(person);
                 callback.didFinishLoadingPerson(ChangeType.UPDATE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
             } else {
                 callback.didFinishLoadingPerson(ChangeType.IGNORE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
@@ -498,7 +519,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
             } else {
                 this.mPersonsDisassociated++;
                 person.setPhoneContactID(0);
-                person.save(FastContactsDatabase.instance());
+                this.savePerson(person);
                 callback.didFinishLoadingPerson(ChangeType.MERGE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
             }
         }
@@ -526,7 +547,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
                     person.setPhoneContactID(UNKNOWN_ID);
                     person.setPhoneContactVersion(UNKNOWN_ID);
 
-                    person.save(FastContactsDatabase.instance());
+                    this.savePerson(person);
                     this.mPersonsDisassociated++;
 
                     callback.didFinishLoadingPerson(ChangeType.DISASSOCIATE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
@@ -623,6 +644,60 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
         return hasName || hasEmail || hasPhoneNumber;
     }
 
+    private Integer lookupPersonIdWithContactInformation(Person person) {
+        if (person.emails != null) {
+            for (Email email : person.emails) {
+                Integer personId = this.emailPersonIdHashMap.get(email.hashValue);
+                if (personId != null) {
+                    return personId;
+                }
+            }
+        }
+
+        if (person.phoneNumbers != null) {
+            for (PhoneNumber phoneNumber : person.phoneNumbers) {
+                Integer personId = this.phoneNumberPersonIdHashMap.get(phoneNumber.hashValue);
+                if (personId != null) {
+                    return personId;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private void savePerson(final Person person) {
+        if (person == null) {
+            return;
+        }
+
+        this.personsToSave.add(person);
+
+        if (person.emails != null) {
+            for (Email email : person.emails) {
+                this.emailPersonIdHashMap.put(email.hashValue, person.getPersonId());
+            }
+        }
+
+        if (person.phoneNumbers != null) {
+            for (PhoneNumber phoneNumber : person.phoneNumbers) {
+                this.phoneNumberPersonIdHashMap.put(phoneNumber.hashValue, person.getPersonId());
+            }
+        }
+    }
+
+    private void savePersons() {
+        FastStoreModelTransaction
+                .saveBuilder(FlowManager.getModelAdapter(Person.class))
+                .addAll(personsToSave)
+                .build()
+                .execute(FastContactsDatabase.instance());
+    }
+
+    // endregion
+
+    // region: Broadcast
+
     public class LocalBinder extends Binder {
         public PhoneContactsSynchronizerTask getService() {
             // Return this instance of LocalService so clients can call public methods
@@ -642,10 +717,6 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
         outIntent.putExtra(EXTRA_CURRENT_POSITION, currentPosition);
         outIntent.putExtra(EXTRA_MAX_POSITION, maxPosition);
         mBroadcastManager.sendBroadcast(outIntent);
-    }
-
-    public enum ChangeType {
-        ADD, MERGE, UPDATE, IGNORE, DELETE, DISASSOCIATE
     }
 
     // endregion

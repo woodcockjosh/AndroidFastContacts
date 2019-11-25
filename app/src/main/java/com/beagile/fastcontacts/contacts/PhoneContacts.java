@@ -70,6 +70,10 @@ public class PhoneContacts {
                 if(action.equals(PhoneContactsSynchronizerTask.ACTION_CONTACT_SYNC_COMPLETE)){
                     callback.didEndSyncingContacts();
                 }
+
+                if(action.equals(PhoneContactsSynchronizerTask.ACTION_CONTACT_SAVE_COMPLETE)){
+                    callback.didEndSavingContacts();
+                }
             }
         };
     }
@@ -79,6 +83,7 @@ public class PhoneContacts {
         intentFilter.addAction(PhoneContactsSynchronizerTask.ACTION_CONTACT_SYNC_UPDATED);
         intentFilter.addAction(PhoneContactsSynchronizerTask.ACTION_CONTACT_SYNC_STARTED);
         intentFilter.addAction(PhoneContactsSynchronizerTask.ACTION_CONTACT_SYNC_COMPLETE);
+        intentFilter.addAction(PhoneContactsSynchronizerTask.ACTION_CONTACT_SAVE_COMPLETE);
         return intentFilter;
     }
 
