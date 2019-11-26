@@ -131,7 +131,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mPhoneContacts.release();
         mSqlScoutServer.destroy();
     }
 

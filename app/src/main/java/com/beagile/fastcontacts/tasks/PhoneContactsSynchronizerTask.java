@@ -2,21 +2,19 @@ package com.beagile.fastcontacts.tasks;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Binder;
-import android.os.IBinder;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.preference.PreferenceManager;
 
 import com.beagile.fastcontacts.config.FastContactsDatabase;
+import com.beagile.fastcontacts.contacts.PhoneContactsCallback;
+import com.beagile.fastcontacts.contacts.PhoneContactsProgress;
 import com.beagile.fastcontacts.contacts.PhoneContactsSynchronizerCallback;
 import com.beagile.fastcontacts.models.person.Person;
 import com.beagile.fastcontacts.models.person.Person_Table;
@@ -27,14 +25,11 @@ import com.beagile.fastcontacts.models.person.elements.PhoneNumberPersonIdHashMa
 import com.beagile.fastcontacts.utils.CursorUtil;
 import com.beagile.fastcontacts.utils.PhoneFormatUtil;
 import com.beagile.fastcontacts.utils.StringUtil;
-import com.dbflow5.config.DBFlowDatabase;
 import com.dbflow5.config.FlowManager;
 import com.dbflow5.database.DatabaseWrapper;
 import com.dbflow5.query.SQLite;
 import com.dbflow5.query.Select;
 import com.dbflow5.transaction.FastStoreModelTransaction;
-import com.dbflow5.transaction.ITransaction;
-import com.dbflow5.transaction.Transaction;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Contract;
@@ -42,23 +37,15 @@ import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class PhoneContactsSynchronizerTask extends AsyncTask {
+public class PhoneContactsSynchronizerTask extends AsyncTask<PhoneContactsCallback, PhoneContactsProgress, Long> {
 
     // region: Enum
 
     private static final String CHANNEL_ID = PhoneContactsSynchronizerTask.class.getSimpleName();
     private static final String TAG = PhoneContactsSynchronizerTask.class.getSimpleName();
-
-    public static final String ACTION_CONTACT_SYNC_STARTED = "ACTION_CONTACT_SYNC_STARTED";
-    public static final String ACTION_CONTACT_SYNC_UPDATED = "ACTION_CONTACT_SYNC_UPDATED";
-    public static final String ACTION_CONTACT_SYNC_COMPLETE = "ACTION_CONTACT_SYNC_COMPLETE";
-    public static final String ACTION_CONTACT_SAVE_COMPLETE = "ACTION_CONTACT_SAVE_COMPLETE";
-
-    public static final String EXTRA_CURRENT_POSITION = "EXTRA_CURRENT_POSITION";
-    public static final String EXTRA_MAX_POSITION = "EXTRA_MAX_POSITION";
-    public static final String EXTRA_WAS_CHANGED = "EXTRA_WAS_CHANGED";
 
     public enum ChangeType {
         ADD, MERGE, UPDATE, IGNORE, DELETE, DISASSOCIATE
@@ -81,7 +68,6 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
     private int mPersonsAdded;
     private int mPersonsMerged;
     private int mPersonsDisassociated;
-    private final IBinder mBinder = new LocalBinder();
 
     private long mPersonContactID;
     private long mContactContactID;
@@ -90,7 +76,6 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
     private boolean mIsLimitingListByLastUpdateDate;
 
     private Context mContext;
-    private LocalBroadcastManager mBroadcastManager;
     private PhoneContactsSynchronizerCallback callback;
 
     private boolean mLastRowChangedIsTheSameAsCurrentRowChanged;
@@ -118,41 +103,62 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
     public PhoneContactsSynchronizerTask(Context context) {
         this();
         this.mContext = context;
-        this.mBroadcastManager = LocalBroadcastManager.getInstance(context);
     }
 
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
+        this._setup();
     }
 
     @Override
-    protected Long doInBackground(Object[] objects) {
+    protected Long doInBackground(final PhoneContactsCallback[] callbacks) {
 
-        this._setup();
         Long count = (long) mContactsCursor.getCount();
 
-        _sendBroadcast(ACTION_CONTACT_SYNC_STARTED);
+        this.publishActionProgress(callbacks, PhoneContactsProgress.Action.SyncStarted);
 
         this.sync(new PhoneContactsSynchronizerCallback() {
             @Override
             public void didFinishLoadingPerson(ChangeType changeType, int current, int max) {
                 boolean wasChanged = (changeType != ChangeType.IGNORE && changeType != ChangeType.MERGE);
-                _sendBroadcast(wasChanged, current, max);
+                publishUpdateProgress(callbacks, wasChanged, current, max);
             }
         });
 
-        _sendBroadcast(ACTION_CONTACT_SYNC_COMPLETE);
+        this.publishActionProgress(callbacks, PhoneContactsProgress.Action.SyncComplete);
 
         savePersons();
 
-        _sendBroadcast(ACTION_CONTACT_SAVE_COMPLETE);
+        this.publishActionProgress(callbacks, PhoneContactsProgress.Action.SaveComplete);
 
         return count;
     }
 
+    private void publishActionProgress(final PhoneContactsCallback[] callbacks, PhoneContactsProgress.Action action) {
+        List<PhoneContactsProgress> progresses = new ArrayList<>();
+        for(PhoneContactsCallback callback : callbacks){
+            progresses.add(new PhoneContactsProgress(callback, action));
+        }
+        publishProgress(progresses.toArray(new PhoneContactsProgress[0]));
+    }
+
+    private void publishUpdateProgress(final PhoneContactsCallback[] callbacks, boolean wasChanged, int current, int max) {
+        List<PhoneContactsProgress> progresses = new ArrayList<>();
+        for(PhoneContactsCallback callback : callbacks){
+            progresses.add(new PhoneContactsProgress(callback, wasChanged, current, max));
+        }
+        publishProgress(progresses.toArray(new PhoneContactsProgress[0]));
+    }
+
+    @Override
+    protected void onProgressUpdate(final PhoneContactsProgress[] progresses) {
+        for(PhoneContactsProgress progress: progresses) {
+            progress.sendUpdate();
+        }
+    }
+
     protected void onPostExecute(Long result) {
-        this.mBroadcastManager = null;
         this.mContext = null;
     }
 
@@ -344,7 +350,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
             this._goToNextContact();
             this._goToNextPerson();
         } else if (this.mPersonID == null) {
-            callback.didFinishLoadingPerson(ChangeType.IGNORE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
+            callback.didFinishLoadingPerson(ChangeType.IGNORE, mContactsCursor.getPosition(), mContactsCursor.getCount());
             this._goToNextPerson();
         } else {
             this._removePerson(callback);
@@ -456,7 +462,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
             } catch (NullPointerException e) {
                 //Person will be null if _mergePersonInfo returns null or if lookedUpPerson is null.
             }
-            callback.didFinishLoadingPerson(type, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
+            callback.didFinishLoadingPerson(type, mContactsCursor.getPosition(), mContactsCursor.getCount());
         }
     }
 
@@ -509,9 +515,9 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
                 person.setAutoincrementID(CursorUtil.getInt(mPersonsCursor, "id"));
                 this.mPersonsUpdated++;
                 this.savePerson(person);
-                callback.didFinishLoadingPerson(ChangeType.UPDATE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
+                callback.didFinishLoadingPerson(ChangeType.UPDATE, mContactsCursor.getPosition(), mContactsCursor.getCount());
             } else {
-                callback.didFinishLoadingPerson(ChangeType.IGNORE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
+                callback.didFinishLoadingPerson(ChangeType.IGNORE, mContactsCursor.getPosition(), mContactsCursor.getCount());
             }
         } else {
             if (person.getUserId() == null) {
@@ -520,7 +526,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
                 this.mPersonsDisassociated++;
                 person.setPhoneContactID(0);
                 this.savePerson(person);
-                callback.didFinishLoadingPerson(ChangeType.MERGE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
+                callback.didFinishLoadingPerson(ChangeType.MERGE, mContactsCursor.getPosition(), mContactsCursor.getCount());
             }
         }
     }
@@ -550,7 +556,7 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
                     this.savePerson(person);
                     this.mPersonsDisassociated++;
 
-                    callback.didFinishLoadingPerson(ChangeType.DISASSOCIATE, mContactsCursor.getPosition(), mContactsCursor.getCount() - 1);
+                    callback.didFinishLoadingPerson(ChangeType.DISASSOCIATE, mContactsCursor.getPosition(), mContactsCursor.getCount());
                 } else {
                     Log.e(TAG, "Could not find person with autoincrement id: " + autoincrementID);
                 }
@@ -692,31 +698,6 @@ public class PhoneContactsSynchronizerTask extends AsyncTask {
                 .addAll(personsToSave)
                 .build()
                 .execute(FastContactsDatabase.instance());
-    }
-
-    // endregion
-
-    // region: Broadcast
-
-    public class LocalBinder extends Binder {
-        public PhoneContactsSynchronizerTask getService() {
-            // Return this instance of LocalService so clients can call public methods
-            return PhoneContactsSynchronizerTask.this;
-        }
-    }
-
-    private void _sendBroadcast(final String action) {
-        Intent outIntent = new Intent(action);
-        mBroadcastManager.sendBroadcast(outIntent);
-    }
-
-    private void _sendBroadcast(boolean wasChanged, int currentPosition, int maxPosition) {
-
-        Intent outIntent = new Intent(ACTION_CONTACT_SYNC_UPDATED);
-        outIntent.putExtra(EXTRA_WAS_CHANGED, wasChanged);
-        outIntent.putExtra(EXTRA_CURRENT_POSITION, currentPosition);
-        outIntent.putExtra(EXTRA_MAX_POSITION, maxPosition);
-        mBroadcastManager.sendBroadcast(outIntent);
     }
 
     // endregion
